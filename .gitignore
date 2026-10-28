@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+*.egg-info/
+
+# Env & secrets
+.env
+backend/.env
+
+# Uploads
+backend/uploads/
+uploads/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Node (frontend, later)
+node_modules/
+.next/

@@ -1,0 +1,60 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: ai_sentinel
+      POSTGRES_PASSWORD: change_me_in_production
+      POSTGRES_DB: ai_sentinel
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ai_sentinel"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  searxng:
+    image: searxng/searxng:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - searxng:/etc/searxng
+    environment:
+      SEARXNG_BASE_URL: http://localhost:8080/
+
+  backend:
+    build: ./backend
+    env_file: .env
+    environment:
+      POSTGRES_HOST: postgres
+      SEARXNG_URL: http://searxng:8080
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  worker:
+    build: ./backend
+    env_file: .env
+    environment:
+      POSTGRES_HOST: postgres
+      SEARXNG_URL: http://searxng:8080
+    volumes:
+      - ./backend:/app
+      - uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: python -m app.scheduler
+
+volumes:
+  pgdata:
+  searxng:
+  uploads:

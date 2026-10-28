@@ -1,0 +1,53 @@
+/* AI Sentinel — global styles (RTL, Persian) */
+@import url("https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css");
+
+:root {
+  --bg: #0a0f1e;
+  --bg-card: #0f1629;
+  --bg-card-hover: #151d35;
+  --border: #1c2745;
+  --text: #e2e8f0;
+  --text-dim: #94a3b8;
+  --accent: #7c5cff;
+  --accent-light: #9b82ff;
+  --cyan: #22d3ee;
+}
+
+html {
+  direction: rtl;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: Vazirmatn, Tahoma, sans-serif;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: #2a3a63;
+  border-radius: 4px;
+}
+
+/* Skeleton loader */
+.skeleton {
+  background: linear-gradient(90deg, #151d35 25%, #1c2745 50%, #151d35 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

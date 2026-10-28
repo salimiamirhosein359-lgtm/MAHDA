@@ -1,0 +1,39 @@
+# AI Sentinel — Backend
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+sqlalchemy>=2.0.36
+alembic>=1.14.0
+psycopg2-binary>=2.9.10
+pgvector>=0.3.6
+pydantic>=2.10.0
+pydantic-settings>=2.6.0
+httpx>=0.28.0
+feedparser>=6.0.11
+python-dotenv>=1.0.1
+litellm>=1.53.0
+feedgen>=1.0.0
+
+# Embeddings (local, free)
+sentence-transformers>=3.3.0
+
+# File processing
+pypdf>=5.1.0
+python-docx>=1.1.2
+python-pptx>=1.0.2
+
+# Audio transcription
+faster-whisper>=1.1.0
+
+# OCR
+pytesseract>=0.3.13
+Pillow>=11.0.0
+
+# Scheduling (phase 1 - simple)
+apscheduler>=3.10.4
+
+# Testing
+pytest>=8.3.0
+pytest-asyncio>=0.24.0
+
+# Utils
+python-multipart>=0.0.17
