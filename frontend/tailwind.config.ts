@@ -5,24 +5,47 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        vazirmatn: ["Vazirmatn", "Tahoma", "sans-serif"],
+        vazirmatn: ["Vazirmatn", "Segoe UI", "Tahoma", "sans-serif"],
+        serif: ["var(--font-serif)", "Noto Naskh Arabic", "Georgia", "serif"],
       },
       colors: {
-        base: {
-          900: "#0a0f1e",
-          800: "#0f1629",
-          700: "#151d35",
-          600: "#1c2745",
-          500: "#2a3a63",
+        /* McKinsey & Company palette */
+        navy: {
+          DEFAULT: "#051C2C",
+          soft: "#0B2B42",
+          900: "#051C2C",
+          800: "#0B2B42",
+          700: "#14415E",
         },
-        accent: {
-          500: "#7c5cff",
-          400: "#9b82ff",
-          300: "#b8a4ff",
+        mblue: {
+          DEFAULT: "#2251FF",
+          dark: "#1A3FD6",
+          600: "#1A3FD6",
+          500: "#2251FF",
+          400: "#5C7DFF",
         },
-        cyan: {
-          500: "#22d3ee",
+        lblue: {
+          DEFAULT: "#A7C5FF",
+          soft: "#D0DEFF",
+          300: "#D0DEFF",
+          400: "#A7C5FF",
         },
+        cgray: {
+          DEFAULT: "#E6E6E6",
+          soft: "#F5F5F5",
+          200: "#F5F5F5",
+          300: "#E6E6E6",
+        },
+        ink: {
+          DEFAULT: "#111111",
+          dim: "#565656",
+          faint: "#8A8A8A",
+        },
+        rule: "#D9D9D9",
+        mred: "#E52A2A",
+      },
+      letterSpacing: {
+        tightest: "-0.02em",
       },
     },
   },

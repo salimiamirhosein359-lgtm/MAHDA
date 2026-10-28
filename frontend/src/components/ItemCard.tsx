@@ -1,77 +1,93 @@
-import { ExternalLink, Flame } from "lucide-react";
+import { ExternalLink, TrendingUp } from "lucide-react";
 import type { ItemOut } from "@/lib/api";
-import { timeAgo, toFa, faCategory, faCamp, CATEGORIES, CAMPS } from "@/lib/ui";
+import { timeAgo, toFa, CATEGORIES, CAMPS } from "@/lib/ui";
 
+/* McKinsey-style flat news card: hairline separators, no big radii,
+   navy title that turns bright-blue on hover, generous whitespace. */
 export default function ItemCard({ item }: { item: ItemOut }) {
   const cat = CATEGORIES.find((c) => c.value === item.category);
   const camp = CAMPS.find((c) => c.value === item.camp);
   const score = item.score ?? 0;
+  const hot = score >= 0.8;
 
   return (
     <a
       href={item.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="block p-4 rounded-xl border border-base-600 bg-base-800 hover:bg-base-700 transition-colors group"
+      className="group block py-6 border-b border-rule first:border-t transition-colors hover:bg-cgray-soft/60"
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-5 px-1">
         <div className="flex-1 min-w-0">
-          {/* Title */}
-          <h3 className="font-bold text-base leading-7 line-clamp-2 group-hover:text-accent-400 transition-colors">
+          {/* Kicker row */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-2 text-[11px]">
+            {camp && camp.value && camp.value !== "other" && (
+              <span className="text-ink-faint">
+                {camp.flag} {camp.label}
+              </span>
+            )}
+            {cat && cat.value && (
+              <>
+                <span className="text-rule">|</span>
+                <span className="font-bold text-mblue-500 uppercase tracking-wide">
+                  {cat.label}
+                </span>
+              </>
+            )}
+            {item.actor && (
+              <>
+                <span className="text-rule">|</span>
+                <span className="text-ink-faint truncate max-w-40">{item.actor}</span>
+              </>
+            )}
+          </div>
+
+          {/* Title — serif, navy, blue on hover */}
+          <h3 className="font-serif text-lg md:text-xl leading-8 text-navy group-hover:text-mblue-500 transition-colors line-clamp-2">
             {item.title}
           </h3>
 
           {/* Summary */}
           {item.summary && (
-            <p className="mt-2 text-sm text-slate-400 line-clamp-3 leading-6">
+            <p className="mt-2 text-sm text-ink-dim leading-editorial line-clamp-3">
               {item.summary}
             </p>
           )}
 
-          {/* Badges */}
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-            {cat && cat.value && (
-              <span className={`px-2.5 py-0.5 rounded-full border ${cat.color}`}>
-                {cat.label}
-              </span>
-            )}
-            {camp && camp.value && camp.value !== "other" && (
-              <span className={`px-2.5 py-0.5 rounded-full border ${camp.color}`}>
-                {camp.flag} {camp.label}
-              </span>
-            )}
-            {item.actor && (
-              <span className="px-2.5 py-0.5 rounded-full border bg-cyan-500/10 text-cyan-300 border-cyan-500/30">
-                {item.actor}
-              </span>
-            )}
-          </div>
-
           {/* Meta row */}
-          <div className="mt-3 flex items-center gap-4 text-xs text-slate-500">
+          <div className="mt-3 flex items-center gap-4 text-xs text-ink-faint">
             <span>{timeAgo(item.published_at)}</span>
             {item.author && <span className="truncate max-w-32">{item.author}</span>}
+            <span className="mr-auto flex items-center gap-1.5 text-mblue-500 opacity-0 group-hover:opacity-100 transition-opacity">
+              <ExternalLink size={13} strokeWidth={1.5} />
+              مشاهده منبع
+            </span>
           </div>
         </div>
 
-        {/* Score + open link */}
-        <div className="flex flex-col items-center gap-2 shrink-0">
-          <div
-            className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold"
-            style={{
-              background: score >= 0.8 ? "rgba(239,68,68,.15)" : score >= 0.6 ? "rgba(124,92,255,.15)" : "rgba(148,163,184,.1)",
-              color: score >= 0.8 ? "#f87171" : score >= 0.6 ? "#9b82ff" : "#94a3b8",
-            }}
+        {/* Significance index — flat stat, red reserved for critical */}
+        <div className="shrink-0 flex flex-col items-center justify-center w-16 h-16 border border-rule">
+          <span className="text-[9px] uppercase tracking-widest text-ink-faint">
+            اهمیت
+          </span>
+          <span
+            className={`text-xl font-bold leading-none mt-1 ${hot ? "text-mred" : "text-navy"}`}
           >
-            <Flame size={13} />
             {toFa(Math.round(score * 100))}
-          </div>
-          <ExternalLink
-            size={16}
-            className="text-slate-600 group-hover:text-accent-400 transition-colors"
-          />
+          </span>
         </div>
       </div>
     </a>
+  );
+}
+
+/* Trending keyword chip — outlined, quiet */
+export function TrendChip({ keyword, count }: { keyword: string; count: number }) {
+  return (
+    <span className="inline-flex items-baseline gap-1.5 border border-rule px-3 py-1.5 text-xs text-navy hover:border-mblue-500 hover:text-mblue-500 transition-colors">
+      <TrendingUp size={12} strokeWidth={1.5} className="translate-y-[1px]" />
+      {keyword}
+      <span className="text-ink-faint">{toFa(count)}</span>
+    </span>
   );
 }

@@ -1,16 +1,22 @@
-/* AI Sentinel — global styles (RTL, Persian) */
+/* AI Sentinel — global styles (RTL, Persian) — McKinsey & Company redesign */
+
 @import url("https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css");
+@import url("https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;600;700&display=swap");
 
 :root {
-  --bg: #0a0f1e;
-  --bg-card: #0f1629;
-  --bg-card-hover: #151d35;
-  --border: #1c2745;
-  --text: #e2e8f0;
-  --text-dim: #94a3b8;
-  --accent: #7c5cff;
-  --accent-light: #9b82ff;
-  --cyan: #22d3ee;
+  /* McKinsey palette */
+  --navy: #051c2c;        /* Deep Navy — header/footer, headings */
+  --mblue: #2251ff;       /* McKinsey Bright Blue — CTA / links */
+  --mblue-dark: #1a3fd6;
+  --lblue: #a7c5ff;       /* Light Blue accent */
+  --lblue-soft: #d0deff;  /* softer light blue tint */
+  --cgray: #e6e6e6;       /* Cool Gray — section backgrounds */
+  --cgray-soft: #f5f5f5;
+  --ink: #111111;         /* body text */
+  --ink-dim: #565656;
+  --rule: #d9d9d9;        /* hairline separators */
+  --paper: #ffffff;
+  --mred: #e52a2a;        /* McKinsey red — flags/alerts only, VERY sparing */
 }
 
 html {
@@ -18,30 +24,62 @@ html {
 }
 
 body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: Vazirmatn, Tahoma, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: Vazirmatn, "Segoe UI", Tahoma, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* Scrollbar */
+/* McKinsey serif display face for headings (Bower substitute) */
+.font-serif-display {
+  font-family: "Noto Naskh Arabic", Georgia, "Times New Roman", serif;
+}
+
+/* Long, editorial leading for body copy */
+.leading-editorial {
+  line-height: 1.85;
+}
+
+/* Thin underline rule that grows on hover — McKinsey link treatment */
+.mck-link {
+  position: relative;
+  display: inline-block;
+}
+.mck-link::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: -3px;
+  width: 0;
+  height: 1.5px;
+  background: var(--mblue);
+  transition: width 0.25s ease;
+}
+.mck-link:hover::after {
+  width: 100%;
+}
+
+/* Scrollbar — subtle, corporate */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--bg);
+  background: var(--cgray-soft);
 }
 ::-webkit-scrollbar-thumb {
-  background: #2a3a63;
-  border-radius: 4px;
+  background: #c9c9c9;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
-/* Skeleton loader */
+/* Skeleton loader — light theme */
 .skeleton {
-  background: linear-gradient(90deg, #151d35 25%, #1c2745 50%, #151d35 75%);
+  background: linear-gradient(90deg, #eeeeee 25%, #e0e0e0 50%, #eeeeee 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
-  border-radius: 8px;
 }
 @keyframes shimmer {
   0% {
@@ -50,4 +88,44 @@ body {
   100% {
     background-position: -200% 0;
   }
+}
+
+/* Typing indicator for chatbot */
+.typing-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: #9b9b9b;
+  animation: typing 1.2s infinite;
+}
+.typing-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.typing-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes typing {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+/* Fade-in for chat answers */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.fade-up {
+  animation: fadeUp 0.3s ease both;
 }
