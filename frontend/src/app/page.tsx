@@ -1,39 +1,146 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { api, type ItemListOut } from "@/lib/api";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { api, type ItemListOut, type AskOut } from "@/lib/api";
 import { CategoryFilter, CampFilter, TopNav, SectionHead, Empty, ErrorBox, SkeletonList } from "@/components/ui";
 import ItemCard, { TrendChip } from "@/components/ItemCard";
-import { RefreshCw, TrendingUp, FileText, Globe, BarChart3 } from "lucide-react";
+import {
+  RefreshCw, TrendingUp, FileText, Globe, BarChart3,
+  Swords, Cpu, Brain, Wrench, FlaskConical, AppWindow, Landmark, MessageCircle,
+  Send, Loader2, ExternalLink, Sparkles, Search,
+} from "lucide-react";
 import { toFa } from "@/lib/ui";
-import type { TrendOut } from "@/lib/api";
+import type { TrendOut, RivalryOut } from "@/lib/api";
 
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-  note,
-}: {
-  icon: React.ElementType;
-  label: string;
-  value: string;
-  note: string;
+/* ---- Category icons ---- */
+const CAT_ICONS: Record<string, React.ElementType> = {
+  infrastructure: Cpu,
+  models: Brain,
+  algorithms: FlaskConical,
+  tools: Wrench,
+  evals: BarChart3,
+  applications: AppWindow,
+  policy_economy: Landmark,
+  discourse: MessageCircle,
+};
+
+/* ---- Stat Card ---- */
+function StatCard({ icon: Icon, label, value, color = "text-navy" }: {
+  icon: React.ElementType; label: string; value: string; color?: string;
 }) {
   return (
-    <div className="py-6 px-2 border-l border-rule first:border-l-0 last:border-l-0 md:border-l md:first:border-l-0 md:last:border-r-0 group">
-      <div className="flex items-center gap-2 text-ink-faint mb-3">
-        <Icon size={16} strokeWidth={1.5} />
-        <span className="text-[11px] font-bold uppercase tracking-[0.15em]">{label}</span>
+    <div className="flex items-center gap-4 p-5 bg-white border border-rule">
+      <div className={`w-12 h-12 flex items-center justify-center bg-cgray-soft ${color}`}>
+        <Icon size={22} strokeWidth={1.5} />
       </div>
-      <p className="font-serif text-4xl text-navy leading-none mb-2">{value}</p>
-      <p className="text-xs text-ink-dim leading-editorial">{note}</p>
+      <div>
+        <p className="text-[11px] font-bold uppercase tracking-wider text-ink-faint">{label}</p>
+        <p className="font-serif text-2xl text-navy mt-0.5">{value}</p>
+      </div>
     </div>
   );
 }
 
+/* ---- Chat inline ---- */
+function InlineChat() {
+  const [question, setQuestion] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AskOut | null>(null);
+  const [error, setError] = useState("");
+
+  const send = async () => {
+    if (question.trim().length < 2 || loading) return;
+    setLoading(true);
+    setError("");
+    setResult(null);
+    try {
+      const answer = await api.ask(question.trim(), true);
+      setResult(answer);
+    } catch (e) {
+      setError(`خطا: ${e instanceof Error ? e.message : "نامشخص"}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div>
+      {/* Search bar */}
+      <div className="flex items-center gap-0 border border-rule bg-white focus-within:border-mblue transition-colors">
+        <div className="pr-4 pl-2 text-ink-faint">
+          <Search size={18} strokeWidth={1.5} />
+        </div>
+        <input
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") send(); }}
+          placeholder="هر سؤالی دارید بپرسید… (مثلاً: ایلان ماسک، DeepSeek، تراشه AI)"
+          className="flex-1 py-3.5 text-sm outline-none bg-transparent placeholder:text-ink-faint/60"
+        />
+        <button
+          onClick={send}
+          disabled={loading || question.trim().length < 2}
+          className="h-full px-5 py-3 bg-mblue text-white hover:bg-mblue-dark disabled:opacity-40 transition-colors flex items-center gap-2 text-sm font-bold"
+        >
+          {loading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} className="-scale-x-100" />}
+          جستجو
+        </button>
+      </div>
+
+      {/* Results */}
+      {error && <ErrorBox text={error} />}
+      {result && (
+        <div className="mt-4 space-y-4 fade-up">
+          {/* Answer text */}
+          <div className="p-5 bg-cgray-soft border border-rule">
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles size={15} className="text-mblue" />
+              <span className="text-[11px] font-bold uppercase tracking-wider text-ink-faint">
+                نتایج جستجو
+                {result.online && (
+                  <span className="text-mblue mr-2">· آنلاین</span>
+                )}
+              </span>
+            </div>
+            <div className="text-sm leading-[1.85] text-ink whitespace-pre-wrap">
+              {result.answer}
+            </div>
+          </div>
+
+          {/* Sources as cards */}
+          {result.sources.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {result.sources.slice(0, 8).map((s) => (
+                <a
+                  key={s.ref_no}
+                  href={s.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex items-start gap-3 p-4 border border-rule bg-white hover:border-mblue transition-colors"
+                >
+                  <span className="shrink-0 w-7 h-7 border border-rule flex items-center justify-center font-serif text-navy text-sm">
+                    {toFa(s.ref_no)}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-navy group-hover:text-mblue transition-colors line-clamp-2">{s.title}</p>
+                    {s.snippet && <p className="text-xs text-ink-faint mt-1 line-clamp-2">{s.snippet}</p>}
+                  </div>
+                  <ExternalLink size={14} className="text-ink-faint group-hover:text-mblue shrink-0 mt-1" />
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---- Main Dashboard ---- */
 export default function Dashboard() {
   const [data, setData] = useState<ItemListOut | null>(null);
   const [trends, setTrends] = useState<TrendOut[] | null>(null);
+  const [rivalry, setRivalry] = useState<RivalryOut | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [category, setCategory] = useState("");
@@ -43,12 +150,14 @@ export default function Dashboard() {
     setLoading(true);
     setError("");
     try {
-      const [items, t] = await Promise.all([
+      const [items, t, r] = await Promise.all([
         api.items({ category: category || undefined, camp: camp || undefined, days: 7, limit: 50 }),
         api.trends(7, 12),
+        api.rivalry(7, 5),
       ]);
       setData(items);
       setTrends(t);
+      setRivalry(r);
     } catch (e) {
       setError(`خطا در دریافت داده‌ها: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
@@ -56,92 +165,76 @@ export default function Dashboard() {
     }
   }, [category, camp]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useEffect(() => { load(); }, [load]);
 
-  const usCount = data?.items.filter((i) => i.camp === "US").length ?? 0;
-  const cnCount = data?.items.filter((i) => i.camp === "CN").length ?? 0;
+  const usCount = rivalry?.us.count ?? 0;
+  const cnCount = rivalry?.cn.count ?? 0;
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-cgray-soft flex flex-col">
       <TopNav />
 
-      {/* HERO — editorial, serif, McKinsey style */}
+      {/* Hero */}
       <section className="bg-navy text-white">
-        <div className="max-w-6xl mx-auto px-4 py-16 md:py-24">
-          <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-mblue-400 mb-5">
-            هوش مصنوعی · پایش هفتگی
+        <div className="max-w-6xl mx-auto px-4 py-14 md:py-20">
+          <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-mblue-400 mb-4">
+            پایش هوش مصنوعی
           </p>
-          <h1 className="font-serif text-4xl md:text-6xl leading-[1.25] max-w-3xl">
-            رصد تحولات هوش مصنوعی،
+          <h1 className="font-serif text-3xl md:text-5xl leading-[1.3] max-w-3xl">
+            رصد تحولات هوش مصنوعی
             <br />
-            <span className="text-white/70">با دید تحلیلی و داده‌محور</span>
+            <span className="text-white/60">با دید تحلیلی و داده‌محور</span>
           </h1>
-          <p className="mt-6 max-w-2xl text-white/70 leading-editorial text-base md:text-lg">
-            اخبار، مدل‌ها، ابزارها و سیاست‌گذاری هوش مصنوعی را از منابع معتبر
-            دنبال کنید؛ روندهای کلیدی و رقابت چین و آمریکا را در یک نگاه ببینید.
-          </p>
-          <div className="mt-9 flex flex-wrap items-center gap-4">
-            <a
-              href="#feed"
-              className="inline-flex items-center gap-2 bg-mblue-500 hover:bg-mblue-400 text-white px-6 py-3 text-sm font-bold transition-colors"
-            >
-              <FileText size={16} strokeWidth={1.5} />
-              مشاهده اخبار هفته
-            </a>
-            <a
-              href="/rivalry"
-              className="inline-flex items-center gap-2 border border-white/30 hover:border-white text-white px-6 py-3 text-sm font-bold transition-colors"
-            >
-              <BarChart3 size={16} strokeWidth={1.5} />
-              رقابت چین و آمریکا
-            </a>
-          </div>
         </div>
       </section>
 
-      {/* Stat band — flat cards with hairline dividers */}
-      <section className="border-b border-rule bg-cgray-soft">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4">
-            <StatCard
-              icon={FileText}
-              label="آیتم‌های ۷ روز"
-              value={data ? toFa(data.total) : "—"}
-              note="مجموع مطالب رصدشده از منابع منتخب"
-            />
-            <StatCard
-              icon={Globe}
-              label="ایالات متحده"
-              value={data ? toFa(usCount) : "—"}
-              note="آیتم‌های مرتبط با اکوسیستم آمریکا"
-            />
-            <StatCard
-              icon={Globe}
-              label="چین"
-              value={data ? toFa(cnCount) : "—"}
-              note="آیتم‌های مرتبط با اکوسیستم چین"
-            />
-            <StatCard
-              icon={TrendingUp}
-              label="کلیدواژه‌های داغ"
-              value={trends ? toFa(trends.length) : "—"}
-              note="پرتکرارترین موضوعات این هفته"
-            />
-          </div>
+      {/* Stats */}
+      <section className="max-w-6xl mx-auto px-4 -mt-6 w-full relative z-10">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <StatCard icon={FileText} label="آیتم ۷ روز" value={data ? toFa(data.total) : "—"} />
+          <StatCard icon={Globe} label="آمریکا 🇺🇸" value={toFa(usCount)} color="text-mblue" />
+          <StatCard icon={Globe} label="چین 🇨🇳" value={toFa(cnCount)} color="text-mred" />
+          <StatCard icon={TrendingUp} label="کلیدواژه داغ" value={trends ? toFa(trends.length) : "—"} />
         </div>
       </section>
 
-      <main className="max-w-6xl mx-auto px-4 py-12 w-full flex-1">
+      <main className="max-w-6xl mx-auto px-4 py-8 w-full flex-1 space-y-10">
+
+        {/* Inline Chat / Search */}
+        <section>
+          <SectionHead
+            icon={MessageCircle}
+            kicker="گفت‌وگو"
+            title="از آرشیو و اینترنت بپرسید"
+          />
+          <InlineChat />
+        </section>
+
+        {/* Rivalry mini */}
+        {rivalry && (
+          <section>
+            <SectionHead icon={Swords} kicker="رقابت" title="چین و آمریکا" meta="۷ روز اخیر" />
+            <div className="flex items-center gap-0 h-10 border border-rule overflow-hidden">
+              <div
+                className="h-full bg-mblue flex items-center justify-center text-white text-xs font-bold px-3 transition-all"
+                style={{ width: `${Math.max(usCount / Math.max(usCount + cnCount, 1) * 100, 20)}%` }}
+              >
+                🇺🇸 {toFa(usCount)}
+              </div>
+              <div
+                className="h-full bg-mred flex items-center justify-center text-white text-xs font-bold px-3 transition-all"
+                style={{ width: `${Math.max(cnCount / Math.max(usCount + cnCount, 1) * 100, 20)}%` }}
+              >
+                🇨🇳 {toFa(cnCount)}
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Trends */}
         {trends && trends.length > 0 && (
-          <section className="mb-12">
-            <SectionHead
-              kicker="روندها"
-              title="کلیدواژه‌های پرتکرار"
-              meta="۷ روز اخیر"
-            />
+          <section>
+            <SectionHead icon={TrendingUp} kicker="روندها" title="کلیدواژه‌های پرتکرار" meta="۷ روز اخیر" />
             <div className="flex flex-wrap gap-2">
               {trends.slice(0, 12).map((t) => (
                 <TrendChip key={t.keyword} keyword={t.keyword} count={t.count} />
@@ -150,13 +243,11 @@ export default function Dashboard() {
           </section>
         )}
 
-        {/* Feed */}
+        {/* News Feed */}
         <section id="feed">
           <div className="flex items-end justify-between mb-5 border-b border-rule pb-4">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-mblue-500 mb-2">
-                پایش
-              </p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-mblue mb-2">پایش</p>
               <h2 className="font-serif text-2xl md:text-[28px] leading-tight text-navy">
                 آخرین اخبار و تحلیل‌ها
               </h2>
@@ -171,8 +262,7 @@ export default function Dashboard() {
             </button>
           </div>
 
-          {/* Filters */}
-          <div className="space-y-3 mb-8 pt-2">
+          <div className="space-y-3 mb-6">
             <CategoryFilter value={category} onChange={setCategory} />
             <CampFilter value={camp} onChange={setCamp} />
           </div>
@@ -193,28 +283,10 @@ export default function Dashboard() {
         </section>
       </main>
 
-      {/* Footer — deep navy, McKinsey style */}
-      <footer className="bg-navy text-white/60">
-        <div className="max-w-6xl mx-auto px-4 py-10">
-          <div className="flex flex-col md:flex-row items-start justify-between gap-6">
-            <div>
-              <p className="font-serif text-xl text-white mb-2">AI Sentinel</p>
-              <p className="text-xs leading-editorial max-w-md">
-                سامانه رصد و تحلیل تحولات هوش مصنوعی — اخبار، روندها و رقابت
-                جهانی را با رویکردی داده‌محور دنبال می‌کند.
-              </p>
-            </div>
-            <div className="text-xs space-y-2">
-              <p className="uppercase tracking-[0.2em] text-white/40 mb-3">بخش‌ها</p>
-              <p><a href="/" className="hover:text-white transition-colors">رصد</a></p>
-              <p><a href="/rivalry" className="hover:text-white transition-colors">چین و آمریکا</a></p>
-              <p><a href="/research" className="hover:text-white transition-colors">دستیار پژوهشی</a></p>
-              <p><a href="/chat" className="hover:text-white transition-colors">گفت‌وگو</a></p>
-            </div>
-          </div>
-          <div className="mt-8 pt-6 border-t border-white/10 text-[11px] text-white/40">
-            © AI Sentinel — تمامی حقوق محفوظ است
-          </div>
+      {/* Footer */}
+      <footer className="bg-navy text-white/50">
+        <div className="max-w-6xl mx-auto px-4 py-8 text-xs text-center">
+          © AI Sentinel — رصد و تحلیل تحولات هوش مصنوعی
         </div>
       </footer>
     </div>

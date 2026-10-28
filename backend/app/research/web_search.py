@@ -24,16 +24,38 @@ def web_search(query: str, limit: int = 8) -> list[dict]:
 
 
 def _searxng(query: str, limit: int) -> list[dict]:
+    # Use multiple engines for better coverage: general + news + social
+    engines = "google,bing,duckduckgo,brave,wikipedia"
     resp = httpx.get(
         f"{settings.searxng_url}/search",
-        params={"q": query, "format": "json", "language": "en"},
+        params={
+            "q": query,
+            "format": "json",
+            "language": "en",
+            "engines": engines,
+            "time_range": "",  # no time filter for broad results
+        },
         timeout=20,
+        headers={"User-Agent": "AI-Sentinel/1.0"},
     )
     resp.raise_for_status()
+    data = resp.json()
     out = []
-    for r in resp.json().get("results", [])[:limit]:
-        out.append({"title": r.get("title", ""), "url": r.get("url", ""),
-                    "snippet": (r.get("content") or "")[:300]})
+    seen_urls: set[str] = set()
+    for r in data.get("results", []):
+        if len(out) >= limit:
+            break
+        url = r.get("url", "")
+        if url in seen_urls:
+            continue
+        seen_urls.add(url)
+        out.append({
+            "title": r.get("title", ""),
+            "url": url,
+            "snippet": (r.get("content") or "")[:300],
+            "engine": r.get("engine", ""),
+            "publishedDate": r.get("publishedDate", ""),
+        })
     return out
 
 

@@ -453,6 +453,65 @@ def _compose_answer(question: str, sources: list[dict]) -> str:
     return "\n".join(lines)
 
 
+def _compose_answer_two_sections(question: str, recent: list[dict], historical: list[dict]) -> str:
+    """Build answer with two sections: recent news + important historical."""
+    total = len(recent) + len(historical)
+    n_web = sum(1 for s in recent + historical if s.get("kind") == "web")
+    n_arc = total - n_web
+
+    if total == 0:
+        return (
+            "چیزی در آرشیو/وب پیدا نشد — سؤال را دقیق‌تر بپرسید"
+            " (مثلاً نام شرکت، نام مدل، یا موضوع دقیق‌تر)."
+        )
+
+    lines: list[str] = []
+    lines.append(f"بر اساس {total} منبع ({n_arc} از {_FA_ARC_LABEL}، {n_web} از {_FA_WEB_LABEL}):")
+    lines.append("")
+
+    if recent:
+        lines.append("## 📰 جدیدترین اخبار و نتایج")
+        lines.append("")
+        for s in recent[:6]:
+            title = _clean_text(s.get("title"), 140) or "(بدون عنوان)"
+            snip = _clean_text(s.get("snippet"), 160)
+            ref = s.get("ref_no")
+            kind = "🌐" if s.get("kind") == "web" else "📁"
+            bullet = f"• {kind} {title}"
+            if snip:
+                bullet += f" — {snip}"
+            if ref:
+                bullet += f" [{ref}]"
+            lines.append(bullet)
+        lines.append("")
+
+    if historical:
+        lines.append("## 📚 مهم‌ترین منابع آرشیو")
+        lines.append("")
+        for s in historical[:6]:
+            title = _clean_text(s.get("title"), 140) or "(بدون عنوان)"
+            snip = _clean_text(s.get("snippet"), 160)
+            ref = s.get("ref_no")
+            bullet = f"• 📁 {title}"
+            if snip:
+                bullet += f" — {snip}"
+            if ref:
+                bullet += f" [{ref}]"
+            lines.append(bullet)
+        lines.append("")
+
+    # Numbered sources list
+    lines.append("منابع مرتبط:")
+    for s in recent + historical:
+        ref = s.get("ref_no", "?")
+        title = _clean_text(s.get("title"), 120) or "(بدون عنوان)"
+        kind = s.get("kind", "web")
+        kind_fa = _FA_ARC_LABEL if kind == "archive" else _FA_WEB_LABEL
+        lines.append(f"[{ref}] {title} ({kind_fa})")
+
+    return "\n".join(lines)
+
+
 # ---------------------------------------------------------------------------
 # LLM (optional enhancement)
 # ---------------------------------------------------------------------------
@@ -495,10 +554,11 @@ def _safe_archive(db: Session, keywords: list[str], limit: int) -> list[dict]:
 def chat_retrieve(question: str, online: bool = True, limit: int = 8, db: Session | None = None) -> dict:
     """Answer a chat question by searching internal archive + live web.
 
-    Returns ``{"answer": str, "sources": [...], "online": bool}`` where each
-    source is ``{ref_no, title, url, snippet, kind, published_at}``.
-    When ``db`` is not supplied a session is opened automatically (best-effort:
-    if the database is unreachable the answer is web-only).
+    Returns ``{"answer": str, "sources": [...], "online": bool,
+    "recent_sources": [...], "archive_sources": [...]}`` where:
+    - recent_sources = latest news/web results for the query
+    - archive_sources = most important historical items from internal DB
+    Each source is ``{ref_no, title, url, snippet, kind, published_at}``.
     Never raises: DB/web failures degrade to archive-only or empty results.
     """
     keywords = extract_keywords(question)
@@ -508,15 +568,12 @@ def chat_retrieve(question: str, online: bool = True, limit: int = 8, db: Sessio
         db = _get_session()
         own_session = db is not None
     try:
-        # Run archive + web searches concurrently (the user asked for
-        # simultaneous archive+internet search). Web is budgeted to 10s;
-        # the archive query is fast.
         archive: list[dict] = []
         web: list[dict] = []
         with ThreadPoolExecutor(max_workers=2, thread_name_prefix="chat") as pool:
-            archive_fut = pool.submit(_safe_archive, db, keywords, limit)
+            archive_fut = pool.submit(_safe_archive, db, keywords, limit * 2)
             web_fut = (
-                pool.submit(_web_search_budgeted, keywords, limit)
+                pool.submit(_web_search_budgeted, keywords, limit * 2)
                 if (online and keywords)
                 else None
             )
@@ -529,20 +586,55 @@ def chat_retrieve(question: str, online: bool = True, limit: int = 8, db: Sessio
 
     online_used = bool(online)
     if online and not web:
-        online_used = False  # web unavailable → report archive-only
+        online_used = False
 
-    sources = _merge_rank(archive, web, limit)
+    # Split into two sections:
+    # 1. recent_sources = newest items (web + recent archive)
+    # 2. archive_sources = most important historical items
+    all_sources = _merge_rank(archive, web, limit * 2)
 
-    answer = _compose_answer(question, sources)
+    # Recent: web results + archive items from last 30 days, sorted by recency
+    recent_sources = []
+    archive_sources = []
+    now_ts = datetime.now(timezone.utc)
+    for s in all_sources:
+        if s.get("kind") == "web":
+            recent_sources.append(s)
+        elif s.get("published_at"):
+            try:
+                pub = datetime.fromisoformat(s["published_at"])
+                if pub.tzinfo is None:
+                    pub = pub.replace(tzinfo=timezone.utc)
+                age_days = (now_ts - pub).total_seconds() / 86400.0
+                if age_days <= 30:
+                    recent_sources.append(s)
+                else:
+                    archive_sources.append(s)
+            except Exception:
+                archive_sources.append(s)
+        else:
+            archive_sources.append(s)
 
-    # Optional LLM layer: only if a provider is actually configured
-    llm_answer = _llm_enhance(question, sources)
+    # Cap each section
+    recent_sources = recent_sources[:limit]
+    archive_sources = archive_sources[:limit]
+
+    # Renumber refs across both sections
+    all_final = recent_sources + archive_sources
+    for i, s in enumerate(all_final, start=1):
+        s["ref_no"] = i
+
+    # Compose answer with two sections
+    answer = _compose_answer_two_sections(question, recent_sources, archive_sources)
+
+    # Optional LLM layer
+    llm_answer = _llm_enhance(question, all_final)
     if llm_answer:
         answer = f"{llm_answer}\n\n—\n{answer}"
 
-    # strip internal score field from output
-    clean_sources = [
-        {
+    # Clean output
+    def _clean_source(s: dict) -> dict:
+        return {
             "ref_no": s.get("ref_no"),
             "title": s.get("title", ""),
             "url": s.get("url", ""),
@@ -550,10 +642,14 @@ def chat_retrieve(question: str, online: bool = True, limit: int = 8, db: Sessio
             "kind": s.get("kind", "web"),
             "published_at": s.get("published_at"),
         }
-        for s in sources
-    ]
 
-    return {"answer": answer, "sources": clean_sources, "online": online_used}
+    return {
+        "answer": answer,
+        "sources": [_clean_source(s) for s in all_final],
+        "recent_sources": [_clean_source(s) for s in recent_sources],
+        "archive_sources": [_clean_source(s) for s in archive_sources],
+        "online": online_used,
+    }
 
 
 # Convenience: session factory for standalone use (tests, CLI).
