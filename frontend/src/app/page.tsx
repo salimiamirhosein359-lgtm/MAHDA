@@ -1,18 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api, type ItemListOut, type AskOut } from "@/lib/api";
-import { CategoryFilter, CampFilter, TopNav, SectionHead, Empty, ErrorBox, SkeletonList } from "@/components/ui";
-import ItemCard, { TrendChip } from "@/components/ItemCard";
+import { TopNav, ErrorBox, SkeletonList } from "@/components/ui";
+import ItemCard from "@/components/ItemCard";
 import {
-  RefreshCw, TrendingUp, FileText, Globe, BarChart3,
-  Swords, Cpu, Brain, Wrench, FlaskConical, AppWindow, Landmark, MessageCircle,
-  Send, Loader2, ExternalLink, Sparkles, Search,
+  Search, Send, Loader2, ExternalLink, Sparkles,
+  Cpu, Brain, Wrench, FlaskConical, BarChart3, AppWindow, Landmark, MessageCircle,
 } from "lucide-react";
-import { toFa } from "@/lib/ui";
-import type { TrendOut, RivalryOut } from "@/lib/api";
+import { toFa, CATEGORIES } from "@/lib/ui";
 
-/* ---- Category icons ---- */
+/* ---- Category icons for grid ---- */
 const CAT_ICONS: Record<string, React.ElementType> = {
   infrastructure: Cpu,
   models: Brain,
@@ -24,24 +22,7 @@ const CAT_ICONS: Record<string, React.ElementType> = {
   discourse: MessageCircle,
 };
 
-/* ---- Stat Card ---- */
-function StatCard({ icon: Icon, label, value, color = "text-navy" }: {
-  icon: React.ElementType; label: string; value: string; color?: string;
-}) {
-  return (
-    <div className="flex items-center gap-4 p-5 bg-white border border-rule">
-      <div className={`w-12 h-12 flex items-center justify-center bg-cgray-soft ${color}`}>
-        <Icon size={22} strokeWidth={1.5} />
-      </div>
-      <div>
-        <p className="text-[11px] font-bold uppercase tracking-wider text-ink-faint">{label}</p>
-        <p className="font-serif text-2xl text-navy mt-0.5">{value}</p>
-      </div>
-    </div>
-  );
-}
-
-/* ---- Chat inline ---- */
+/* ---- Inline Chat ---- */
 function InlineChat() {
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
@@ -65,8 +46,7 @@ function InlineChat() {
 
   return (
     <div>
-      {/* Search bar */}
-      <div className="flex items-center gap-0 border border-rule bg-white focus-within:border-mblue transition-colors">
+      <div className="flex items-center border border-rule bg-white focus-within:border-mblue transition-colors">
         <div className="pr-4 pl-2 text-ink-faint">
           <Search size={18} strokeWidth={1.5} />
         </div>
@@ -74,7 +54,7 @@ function InlineChat() {
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") send(); }}
-          placeholder="هر سؤالی دارید بپرسید… (مثلاً: ایلان ماسک، DeepSeek، تراشه AI)"
+          placeholder="هر سؤالی دارید بپرسید…"
           className="flex-1 py-3.5 text-sm outline-none bg-transparent placeholder:text-ink-faint/60"
         />
         <button
@@ -83,31 +63,25 @@ function InlineChat() {
           className="h-full px-5 py-3 bg-mblue text-white hover:bg-mblue-dark disabled:opacity-40 transition-colors flex items-center gap-2 text-sm font-bold"
         >
           {loading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} className="-scale-x-100" />}
-          جستجو
+          ارسال
         </button>
       </div>
 
-      {/* Results */}
-      {error && <ErrorBox text={error} />}
+      {error && <div className="mt-3"><ErrorBox text={error} /></div>}
+
       {result && (
         <div className="mt-4 space-y-4 fade-up">
-          {/* Answer text */}
-          <div className="p-5 bg-cgray-soft border border-rule">
+          <div className="p-5 bg-white border border-rule">
             <div className="flex items-center gap-2 mb-3">
               <Sparkles size={15} className="text-mblue" />
               <span className="text-[11px] font-bold uppercase tracking-wider text-ink-faint">
-                نتایج جستجو
-                {result.online && (
-                  <span className="text-mblue mr-2">· آنلاین</span>
-                )}
+                نتایج
               </span>
             </div>
             <div className="text-sm leading-[1.85] text-ink whitespace-pre-wrap">
               {result.answer}
             </div>
           </div>
-
-          {/* Sources as cards */}
           {result.sources.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {result.sources.slice(0, 8).map((s) => (
@@ -136,39 +110,60 @@ function InlineChat() {
   );
 }
 
-/* ---- Main Dashboard ---- */
+/* ---- Category Card ---- */
+function CategoryCard({
+  cat,
+  icon: Icon,
+  active,
+  onClick,
+}: {
+  cat: { value: string; label: string };
+  icon: React.ElementType;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex flex-col items-center justify-center gap-2 p-4 border transition-all ${
+        active
+          ? "bg-navy text-white border-navy"
+          : "bg-white text-navy border-rule hover:border-mblue hover:text-mblue"
+      }`}
+    >
+      <Icon size={24} strokeWidth={1.5} />
+      <span className="text-xs font-bold">{cat.label}</span>
+    </button>
+  );
+}
+
+/* ---- Main ---- */
 export default function Dashboard() {
   const [data, setData] = useState<ItemListOut | null>(null);
-  const [trends, setTrends] = useState<TrendOut[] | null>(null);
-  const [rivalry, setRivalry] = useState<RivalryOut | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [category, setCategory] = useState("");
-  const [camp, setCamp] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const [items, t, r] = await Promise.all([
-        api.items({ category: category || undefined, camp: camp || undefined, days: 7, limit: 50 }),
-        api.trends(7, 12),
-        api.rivalry(7, 5),
-      ]);
+      const items = await api.items({
+        category: category || undefined,
+        days: 30,
+        limit: 10,
+      });
       setData(items);
-      setTrends(t);
-      setRivalry(r);
     } catch (e) {
-      setError(`خطا در دریافت داده‌ها: ${e instanceof Error ? e.message : String(e)}`);
+      setError(`خطا: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setLoading(false);
     }
-  }, [category, camp]);
+  }, [category]);
 
   useEffect(() => { load(); }, [load]);
 
-  const usCount = rivalry?.us.count ?? 0;
-  const cnCount = rivalry?.cn.count ?? 0;
+  const cats = CATEGORIES.filter((c) => c.value !== "");
 
   return (
     <div className="min-h-screen bg-cgray-soft flex flex-col">
@@ -176,95 +171,55 @@ export default function Dashboard() {
 
       {/* Hero */}
       <section className="bg-navy text-white">
-        <div className="max-w-6xl mx-auto px-4 py-14 md:py-20">
-          <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-mblue-400 mb-4">
-            پایش هوش مصنوعی
-          </p>
-          <h1 className="font-serif text-3xl md:text-5xl leading-[1.3] max-w-3xl">
+        <div className="max-w-4xl mx-auto px-4 py-16 md:py-20 text-center">
+          <h1 className="font-serif text-3xl md:text-5xl leading-[1.3]">
             رصد تحولات هوش مصنوعی
-            <br />
-            <span className="text-white/60">با دید تحلیلی و داده‌محور</span>
           </h1>
         </div>
       </section>
 
-      {/* Stats */}
-      <section className="max-w-6xl mx-auto px-4 -mt-6 w-full relative z-10">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <StatCard icon={FileText} label="آیتم ۷ روز" value={data ? toFa(data.total) : "—"} />
-          <StatCard icon={Globe} label="آمریکا 🇺🇸" value={toFa(usCount)} color="text-mblue" />
-          <StatCard icon={Globe} label="چین 🇨🇳" value={toFa(cnCount)} color="text-mred" />
-          <StatCard icon={TrendingUp} label="کلیدواژه داغ" value={trends ? toFa(trends.length) : "—"} />
-        </div>
-      </section>
+      <main className="max-w-5xl mx-auto px-4 py-8 w-full flex-1 space-y-10">
 
-      <main className="max-w-6xl mx-auto px-4 py-8 w-full flex-1 space-y-10">
-
-        {/* Inline Chat / Search */}
-        <section>
-          <SectionHead
-            icon={MessageCircle}
-            kicker="گفت‌وگو"
-            title="از آرشیو و اینترنت بپرسید"
-          />
+        {/* Chat */}
+        <section className="-mt-8 relative z-10">
           <InlineChat />
         </section>
 
-        {/* Rivalry mini */}
-        {rivalry && (
-          <section>
-            <SectionHead icon={Swords} kicker="رقابت" title="چین و آمریکا" meta="۷ روز اخیر" />
-            <div className="flex items-center gap-0 h-10 border border-rule overflow-hidden">
-              <div
-                className="h-full bg-mblue flex items-center justify-center text-white text-xs font-bold px-3 transition-all"
-                style={{ width: `${Math.max(usCount / Math.max(usCount + cnCount, 1) * 100, 20)}%` }}
-              >
-                🇺🇸 {toFa(usCount)}
-              </div>
-              <div
-                className="h-full bg-mred flex items-center justify-center text-white text-xs font-bold px-3 transition-all"
-                style={{ width: `${Math.max(cnCount / Math.max(usCount + cnCount, 1) * 100, 20)}%` }}
-              >
-                🇨🇳 {toFa(cnCount)}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Trends */}
-        {trends && trends.length > 0 && (
-          <section>
-            <SectionHead icon={TrendingUp} kicker="روندها" title="کلیدواژه‌های پرتکرار" meta="۷ روز اخیر" />
-            <div className="flex flex-wrap gap-2">
-              {trends.slice(0, 12).map((t) => (
-                <TrendChip key={t.keyword} keyword={t.keyword} count={t.count} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* News Feed */}
-        <section id="feed">
-          <div className="flex items-end justify-between mb-5 border-b border-rule pb-4">
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-mblue mb-2">پایش</p>
-              <h2 className="font-serif text-2xl md:text-[28px] leading-tight text-navy">
-                آخرین اخبار و تحلیل‌ها
-              </h2>
-            </div>
-            <button
-              onClick={load}
-              disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 border border-navy text-navy text-sm font-bold hover:bg-navy hover:text-white disabled:opacity-40 transition-colors"
-            >
-              <RefreshCw size={15} strokeWidth={1.5} className={loading ? "animate-spin" : ""} />
-              به‌روزرسانی
-            </button>
+        {/* Category grid */}
+        <section>
+          <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
+            {cats.map((c) => {
+              const Icon = CAT_ICONS[c.value] || Brain;
+              return (
+                <CategoryCard
+                  key={c.value}
+                  cat={c}
+                  icon={Icon}
+                  active={category === c.value}
+                  onClick={() => setCategory(category === c.value ? "" : c.value)}
+                />
+              );
+            })}
           </div>
+          {category && (
+            <button
+              onClick={() => setCategory("")}
+              className="mt-3 text-xs text-mblue hover:underline"
+            >
+              ← نمایش همه دسته‌ها
+            </button>
+          )}
+        </section>
 
-          <div className="space-y-3 mb-6">
-            <CategoryFilter value={category} onChange={setCategory} />
-            <CampFilter value={camp} onChange={setCamp} />
+        {/* Latest 10 news */}
+        <section>
+          <div className="flex items-end justify-between mb-5 border-b border-rule pb-4">
+            <h2 className="font-serif text-xl md:text-2xl text-navy">
+              {category ? CATEGORIES.find((c) => c.value === category)?.label ?? "اخبار" : "آخرین اخبار"}
+            </h2>
+            <span className="text-xs text-ink-faint">
+              {data ? `${toFa(data.total)} مورد` : ""}
+            </span>
           </div>
 
           {loading && !data ? (
@@ -272,9 +227,11 @@ export default function Dashboard() {
           ) : error ? (
             <ErrorBox text={error} />
           ) : data && data.items.length === 0 ? (
-            <Empty text="هیچ آیتمی با این فیلترها پیدا نشد" />
+            <div className="py-16 text-center text-ink-faint text-sm">
+              هیچ خبری در این دسته پیدا نشد
+            </div>
           ) : data ? (
-            <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {data.items.map((item) => (
                 <ItemCard key={item.id} item={item} />
               ))}
@@ -285,8 +242,8 @@ export default function Dashboard() {
 
       {/* Footer */}
       <footer className="bg-navy text-white/50">
-        <div className="max-w-6xl mx-auto px-4 py-8 text-xs text-center">
-          © AI Sentinel — رصد و تحلیل تحولات هوش مصنوعی
+        <div className="max-w-5xl mx-auto px-4 py-6 text-xs text-center">
+          © AI Sentinel — رصد تحولات هوش مصنوعی
         </div>
       </footer>
     </div>

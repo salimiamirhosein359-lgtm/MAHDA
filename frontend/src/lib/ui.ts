@@ -33,6 +33,33 @@ export function timeAgo(iso: string | null): string {
   return `${toFa(days)} روز پیش`;
 }
 
+export function formatDate(iso: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  const day = toFa(d.getDate());
+  const months = ["ژانویه","فوریه","مارس","آوریل","مه","ژوئن","ژوئیه","اوت","سپتامبر","اکتبر","نوامبر","دسامبر"];
+  const month = months[d.getMonth()];
+  const year = toFa(d.getFullYear());
+  return `${day} ${month} ${year}`;
+}
+
+export function formatTime(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const h = toFa(String(d.getHours()).padStart(2, "0"));
+  const m = toFa(String(d.getMinutes()).padStart(2, "0"));
+  return `${h}:${m}`;
+}
+
+export function extractSource(url: string): string {
+  try {
+    const host = new URL(url).hostname.replace("www.", "");
+    return host;
+  } catch {
+    return "";
+  }
+}
+
 export function toFa(n: number | string): string {
   return String(n).replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)]);
 }
