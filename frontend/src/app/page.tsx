@@ -2,15 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api, type ItemListOut, type AskOut } from "@/lib/api";
-import { TopNav, ErrorBox, SkeletonList } from "@/components/ui";
+import { TopNav, ErrorBox } from "@/components/ui";
 import ItemCard from "@/components/ItemCard";
 import {
-  Search, Send, Loader2, ExternalLink, Sparkles,
+  Search, ArrowUp, Loader2, ExternalLink, Sparkles, Radar,
   Cpu, Brain, Wrench, FlaskConical, BarChart3, AppWindow, Landmark, MessageCircle,
 } from "lucide-react";
-import { toFa, CATEGORIES } from "@/lib/ui";
+import { toFa, CATEGORIES, CAT_STYLE } from "@/lib/ui";
 
-/* ---- Category icons for grid ---- */
 const CAT_ICONS: Record<string, React.ElementType> = {
   infrastructure: Cpu,
   models: Brain,
@@ -22,7 +21,7 @@ const CAT_ICONS: Record<string, React.ElementType> = {
   discourse: MessageCircle,
 };
 
-/* ---- Inline Chat ---- */
+/* ---- Chat / search (Perplexity-style floating bar) ---- */
 function InlineChat() {
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
@@ -35,8 +34,7 @@ function InlineChat() {
     setError("");
     setResult(null);
     try {
-      const answer = await api.ask(question.trim(), true);
-      setResult(answer);
+      setResult(await api.ask(question.trim(), true));
     } catch (e) {
       setError(`خطا: ${e instanceof Error ? e.message : "نامشخص"}`);
     } finally {
@@ -46,41 +44,35 @@ function InlineChat() {
 
   return (
     <div>
-      <div className="flex items-center border border-rule bg-white focus-within:border-mblue transition-colors">
-        <div className="pr-4 pl-2 text-ink-faint">
-          <Search size={18} strokeWidth={1.5} />
-        </div>
+      <div className="flex items-center bg-white rounded-2xl shadow-search ring-1 ring-black/5 focus-within:ring-2 focus-within:ring-mblue transition-all p-2">
+        <Search size={20} strokeWidth={1.8} className="mx-3 text-ink-faint shrink-0" />
         <input
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") send(); }}
           placeholder="هر سؤالی دارید بپرسید…"
-          className="flex-1 py-3.5 text-sm outline-none bg-transparent placeholder:text-ink-faint/60"
+          className="flex-1 py-3 text-[15px] outline-none bg-transparent placeholder:text-ink-faint"
         />
         <button
           onClick={send}
           disabled={loading || question.trim().length < 2}
-          className="h-full px-5 py-3 bg-mblue text-white hover:bg-mblue-dark disabled:opacity-40 transition-colors flex items-center gap-2 text-sm font-bold"
+          aria-label="ارسال"
+          className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-sky-600 text-white disabled:opacity-40 hover:brightness-110 transition flex items-center justify-center shrink-0"
         >
-          {loading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} className="-scale-x-100" />}
-          ارسال
+          {loading ? <Loader2 size={18} className="animate-spin" /> : <ArrowUp size={19} strokeWidth={2.2} />}
         </button>
       </div>
 
       {error && <div className="mt-3"><ErrorBox text={error} /></div>}
 
       {result && (
-        <div className="mt-4 space-y-4 fade-up">
-          <div className="p-5 bg-white border border-rule">
-            <div className="flex items-center gap-2 mb-3">
-              <Sparkles size={15} className="text-mblue" />
-              <span className="text-[11px] font-bold uppercase tracking-wider text-ink-faint">
-                نتایج
-              </span>
+        <div className="mt-5 space-y-4 fade-up text-right">
+          <div className="p-6 bg-white rounded-2xl shadow-card">
+            <div className="flex items-center gap-2 mb-3 text-mblue">
+              <Sparkles size={16} />
+              <span className="text-xs font-bold">پاسخ</span>
             </div>
-            <div className="text-sm leading-[1.85] text-ink whitespace-pre-wrap">
-              {result.answer}
-            </div>
+            <div className="text-sm leading-[1.95] text-ink whitespace-pre-wrap">{result.answer}</div>
           </div>
           {result.sources.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -90,14 +82,14 @@ function InlineChat() {
                   href={s.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex items-start gap-3 p-4 border border-rule bg-white hover:border-mblue transition-colors"
+                  className="group flex items-start gap-3 p-4 rounded-xl bg-white shadow-card hover:shadow-lift transition-all"
                 >
-                  <span className="shrink-0 w-7 h-7 border border-rule flex items-center justify-center font-serif text-navy text-sm">
+                  <span className="shrink-0 w-7 h-7 rounded-lg bg-lblue-soft text-mblue-dark flex items-center justify-center text-xs font-bold">
                     {toFa(s.ref_no)}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-navy group-hover:text-mblue transition-colors line-clamp-2">{s.title}</p>
-                    {s.snippet && <p className="text-xs text-ink-faint mt-1 line-clamp-2">{s.snippet}</p>}
+                    <p className="text-sm font-bold text-navy group-hover:text-mblue transition-colors line-clamp-2" dir="auto">{s.title}</p>
+                    {s.snippet && <p className="text-xs text-ink-faint mt-1 line-clamp-2" dir="auto">{s.snippet}</p>}
                   </div>
                   <ExternalLink size={14} className="text-ink-faint group-hover:text-mblue shrink-0 mt-1" />
                 </a>
@@ -110,34 +102,29 @@ function InlineChat() {
   );
 }
 
-/* ---- Category Card ---- */
-function CategoryCard({
-  cat,
-  icon: Icon,
-  active,
-  onClick,
-}: {
-  cat: { value: string; label: string };
-  icon: React.ElementType;
-  active: boolean;
-  onClick: () => void;
-}) {
+/* ---- Category tile: gradient icon, soft card, lift on hover ---- */
+function CategoryTile({
+  value, label, active, onClick,
+}: { value: string; label: string; active: boolean; onClick: () => void }) {
+  const Icon = CAT_ICONS[value] || Brain;
+  const st = CAT_STYLE[value] ?? CAT_STYLE._default;
   return (
     <button
       onClick={onClick}
-      className={`flex flex-col items-center justify-center gap-2 p-4 border transition-all ${
+      className={`group flex flex-col items-center gap-3 px-3 py-5 rounded-2xl transition-all duration-200 ${
         active
-          ? "bg-navy text-white border-navy"
-          : "bg-white text-navy border-rule hover:border-mblue hover:text-mblue"
+          ? "bg-white shadow-lift ring-2 ring-mblue -translate-y-0.5"
+          : "bg-white shadow-card hover:shadow-lift hover:-translate-y-0.5"
       }`}
     >
-      <Icon size={24} strokeWidth={1.5} />
-      <span className="text-xs font-bold">{cat.label}</span>
+      <span className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${st.grad} text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform`}>
+        <Icon size={22} strokeWidth={1.8} />
+      </span>
+      <span className={`text-[13px] font-bold ${active ? "text-mblue" : "text-navy"}`}>{label}</span>
     </button>
   );
 }
 
-/* ---- Main ---- */
 export default function Dashboard() {
   const [data, setData] = useState<ItemListOut | null>(null);
   const [loading, setLoading] = useState(true);
@@ -148,12 +135,7 @@ export default function Dashboard() {
     setLoading(true);
     setError("");
     try {
-      const items = await api.items({
-        category: category || undefined,
-        days: 30,
-        limit: 10,
-      });
-      setData(items);
+      setData(await api.items({ category: category || undefined, days: 30, limit: 10 }));
     } catch (e) {
       setError(`خطا: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
@@ -164,87 +146,86 @@ export default function Dashboard() {
   useEffect(() => { load(); }, [load]);
 
   const cats = CATEGORIES.filter((c) => c.value !== "");
+  const activeLabel = cats.find((c) => c.value === category)?.label;
 
   return (
     <div className="min-h-screen bg-cgray-soft flex flex-col">
       <TopNav />
 
       {/* Hero */}
-      <section className="bg-navy text-white">
-        <div className="max-w-4xl mx-auto px-4 py-16 md:py-20 text-center">
-          <h1 className="font-serif text-3xl md:text-5xl leading-[1.3]">
-            رصد تحولات هوش مصنوعی
-          </h1>
+      <section className="hero-bg text-white">
+        <div className="hero-grid" />
+        <div className="relative max-w-3xl mx-auto px-4 pt-16 pb-28 text-center">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 ring-1 ring-white/20 text-xs mb-6 backdrop-blur">
+            <Radar size={14} />
+            <span>پایش لحظه‌ای</span>
+          </div>
+          <h1 className="text-3xl md:text-5xl font-extrabold leading-[1.4]">رصد تحولات هوش مصنوعی</h1>
         </div>
       </section>
 
-      <main className="max-w-5xl mx-auto px-4 py-8 w-full flex-1 space-y-10">
-
-        {/* Chat */}
-        <section className="-mt-8 relative z-10">
+      <main className="max-w-5xl mx-auto px-4 w-full flex-1 pb-16">
+        {/* Floating search overlapping the hero */}
+        <section className="-mt-14 relative z-10 max-w-3xl mx-auto">
           <InlineChat />
         </section>
 
-        {/* Category grid */}
-        <section>
-          <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
-            {cats.map((c) => {
-              const Icon = CAT_ICONS[c.value] || Brain;
-              return (
-                <CategoryCard
-                  key={c.value}
-                  cat={c}
-                  icon={Icon}
-                  active={category === c.value}
-                  onClick={() => setCategory(category === c.value ? "" : c.value)}
-                />
-              );
-            })}
+        {/* Categories */}
+        <section className="mt-12">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
+            {cats.map((c) => (
+              <CategoryTile
+                key={c.value}
+                value={c.value}
+                label={c.label}
+                active={category === c.value}
+                onClick={() => setCategory(category === c.value ? "" : c.value)}
+              />
+            ))}
           </div>
-          {category && (
-            <button
-              onClick={() => setCategory("")}
-              className="mt-3 text-xs text-mblue hover:underline"
-            >
-              ← نمایش همه دسته‌ها
-            </button>
-          )}
         </section>
 
-        {/* Latest 10 news */}
-        <section>
-          <div className="flex items-end justify-between mb-5 border-b border-rule pb-4">
-            <h2 className="font-serif text-xl md:text-2xl text-navy">
-              {category ? CATEGORIES.find((c) => c.value === category)?.label ?? "اخبار" : "آخرین اخبار"}
+        {/* Latest news */}
+        <section className="mt-12">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-xl md:text-2xl font-extrabold text-navy flex items-center gap-3">
+              <span className="w-1.5 h-7 rounded-full bg-gradient-to-b from-emerald-400 to-sky-500" />
+              {activeLabel ? `آخرین خبرهای ${activeLabel}` : "آخرین اخبار"}
             </h2>
-            <span className="text-xs text-ink-faint">
-              {data ? `${toFa(data.total)} مورد` : ""}
-            </span>
+            {category && (
+              <button onClick={() => setCategory("")} className="text-xs font-bold text-mblue hover:underline">
+                نمایش همه
+              </button>
+            )}
           </div>
 
           {loading && !data ? (
-            <SkeletonList n={5} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-2xl shadow-card p-5">
+                  <div className="skeleton h-4 w-20 rounded-full mb-4" />
+                  <div className="skeleton h-5 w-5/6 rounded mb-2" />
+                  <div className="skeleton h-5 w-2/3 rounded mb-5" />
+                  <div className="skeleton h-3 w-full rounded" />
+                </div>
+              ))}
+            </div>
           ) : error ? (
             <ErrorBox text={error} />
           ) : data && data.items.length === 0 ? (
-            <div className="py-16 text-center text-ink-faint text-sm">
+            <div className="py-16 text-center text-ink-faint text-sm bg-white rounded-2xl shadow-card">
               هیچ خبری در این دسته پیدا نشد
             </div>
           ) : data ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {data.items.map((item) => (
-                <ItemCard key={item.id} item={item} />
-              ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {data.items.map((item) => <ItemCard key={item.id} item={item} />)}
             </div>
           ) : null}
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-navy text-white/50">
-        <div className="max-w-5xl mx-auto px-4 py-6 text-xs text-center">
-          © AI Sentinel — رصد تحولات هوش مصنوعی
-        </div>
+      <footer className="bg-navy text-white/60">
+        <div className="max-w-5xl mx-auto px-4 py-6 text-xs text-center">© AI Sentinel — رصد تحولات هوش مصنوعی</div>
       </footer>
     </div>
   );

@@ -12,6 +12,19 @@ export const CATEGORIES: { value: string; label: string; color: string }[] = [
   { value: "discourse", label: "گفتمان", color: "bg-teal-500/15 text-teal-300 border-teal-500/30" },
 ];
 
+/* Per-category look: gradient icon tile + soft badge, all in the green→blue spectrum */
+export const CAT_STYLE: Record<string, { grad: string; badge: string; bar: string }> = {
+  infrastructure: { grad: "from-emerald-400 to-teal-600", badge: "bg-emerald-50 text-emerald-700", bar: "bg-emerald-500" },
+  models: { grad: "from-teal-400 to-cyan-600", badge: "bg-teal-50 text-teal-700", bar: "bg-teal-500" },
+  algorithms: { grad: "from-cyan-400 to-sky-600", badge: "bg-cyan-50 text-cyan-700", bar: "bg-cyan-500" },
+  tools: { grad: "from-sky-400 to-blue-600", badge: "bg-sky-50 text-sky-700", bar: "bg-sky-500" },
+  evals: { grad: "from-green-400 to-emerald-600", badge: "bg-green-50 text-green-700", bar: "bg-green-500" },
+  applications: { grad: "from-lime-400 to-teal-500", badge: "bg-lime-50 text-lime-700", bar: "bg-lime-500" },
+  policy_economy: { grad: "from-blue-400 to-indigo-600", badge: "bg-blue-50 text-blue-700", bar: "bg-blue-500" },
+  discourse: { grad: "from-teal-500 to-blue-500", badge: "bg-slate-100 text-slate-700", bar: "bg-slate-500" },
+  _default: { grad: "from-slate-400 to-slate-600", badge: "bg-slate-100 text-slate-600", bar: "bg-slate-400" },
+};
+
 export const CAMPS: { value: string; label: string; color: string; flag: string }[] = [
   { value: "", label: "همه کشورها", color: "", flag: "" },
   { value: "US", label: "آمریکا", color: "bg-blue-500/15 text-blue-300 border-blue-500/30", flag: "🇺🇸" },

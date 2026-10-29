@@ -41,12 +41,12 @@ export default function ResearchPage() {
       <TopNav />
 
       {/* Hero */}
-      <section className="bg-navy text-white">
-        <div className="max-w-4xl mx-auto px-4 py-14 text-center">
-          <div className="w-16 h-16 bg-mblue flex items-center justify-center mx-auto mb-5">
+      <section className="hero-bg text-white"><div className="hero-grid" />
+        <div className="relative max-w-4xl mx-auto px-4 pt-14 pb-24 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-400 to-sky-500 flex items-center justify-center mx-auto mb-5 shadow-lg">
             <GraduationCap size={28} strokeWidth={1.5} />
           </div>
-          <h1 className="font-serif text-3xl md:text-4xl leading-[1.3]">
+          <h1 className="text-3xl md:text-4xl leading-[1.3]">
             دستیار پژوهشی
           </h1>
           <p className="mt-3 text-white/60 text-sm max-w-lg mx-auto leading-[1.85]">
@@ -57,7 +57,7 @@ export default function ResearchPage() {
 
       <main className="max-w-4xl mx-auto px-4 py-8 w-full flex-1">
         {/* Search box */}
-        <div className="bg-white border border-rule p-6 -mt-10 relative z-10">
+        <div className="bg-white rounded-2xl shadow-search p-6 -mt-14 relative z-10">
           <div className="flex items-center gap-3 mb-4">
             <button
               onClick={() => setMode("memory")}
@@ -153,7 +153,7 @@ export default function ResearchPage() {
                       rel="noopener noreferrer"
                       className="group flex items-start gap-3 p-4 bg-white border border-rule hover:border-mblue transition-colors"
                     >
-                      <span className="shrink-0 w-8 h-8 border border-rule flex items-center justify-center font-serif text-navy text-sm">
+                      <span className="shrink-0 w-8 h-8 border border-rule flex items-center justify-center text-navy text-sm">
                         {toFa(s.ref_no)}
                       </span>
                       <div className="flex-1 min-w-0">
