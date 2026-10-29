@@ -8,19 +8,19 @@
 @import url("https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;600;700&display=swap");
 
 :root {
-  /* McKinsey palette */
-  --navy: #051c2c;        /* Deep Navy — header/footer, headings */
-  --mblue: #2251ff;       /* McKinsey Bright Blue — CTA / links */
-  --mblue-dark: #1a3fd6;
-  --lblue: #a7c5ff;       /* Light Blue accent */
-  --lblue-soft: #d0deff;  /* softer light blue tint */
-  --cgray: #e6e6e6;       /* Cool Gray — section backgrounds */
-  --cgray-soft: #f5f5f5;
+  /* Teal-Green palette */
+  --navy: #0a2e36;        /* Deep teal — header/footer, headings */
+  --mblue: #0ea5a0;       /* Teal accent — CTA / links */
+  --mblue-dark: #0c8c88;
+  --lblue: #7edcd8;       /* Light teal accent */
+  --lblue-soft: #d0f5f3;  /* softer teal tint */
+  --cgray: #e8f0ef;       /* Cool gray-green — section backgrounds */
+  --cgray-soft: #f3f8f7;
   --ink: #111111;         /* body text */
-  --ink-dim: #565656;
-  --rule: #d9d9d9;        /* hairline separators */
+  --ink-dim: #4a5a5e;
+  --rule: #cddcda;        /* hairline separators */
   --paper: #ffffff;
-  --mred: #e52a2a;        /* McKinsey red — flags/alerts only, VERY sparing */
+  --mred: #e52a2a;        /* red — alerts only */
 }
 
 html {

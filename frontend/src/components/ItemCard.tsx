@@ -4,6 +4,7 @@ import { formatDate, formatTime, extractSource, CATEGORIES } from "@/lib/ui";
 
 export default function ItemCard({ item }: { item: ItemOut }) {
   const cat = CATEGORIES.find((c) => c.value === item.category);
+  const catLabel = cat && cat.value ? cat.label : "عمومی";
   const source = extractSource(item.url);
 
   return (
@@ -13,14 +14,12 @@ export default function ItemCard({ item }: { item: ItemOut }) {
       rel="noopener noreferrer"
       className="group block bg-white border border-rule hover:border-mblue transition-all"
     >
-      {/* Category tag top */}
-      {cat && cat.value && (
-        <div className="bg-cgray-soft px-4 py-1.5 border-b border-rule">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-mblue">
-            {cat.label}
-          </span>
-        </div>
-      )}
+      {/* Category tag — always shown */}
+      <div className="bg-cgray-soft px-4 py-1.5 border-b border-rule">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-mblue">
+          {catLabel}
+        </span>
+      </div>
 
       <div className="p-5">
         {/* Title */}

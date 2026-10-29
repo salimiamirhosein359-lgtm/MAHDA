@@ -79,11 +79,44 @@ _FA_ALIAS = {
     "آلیبابا": "alibaba", "علی‌بابا": "alibaba",
     "هواوی": "huawei",
     "کوئن": "qwen",
-    "مصنوعی": "ai",  # almost always follows «هوش» (هوش مصنوعی = AI)
-    "تراشه": "chip", "تراشه‌ها": "chip", "تراشه": "chip",
+    "مصنوعی": "ai",
+    "تراشه": "chip", "تراشه‌ها": "chip",
     "چین": "china",
     "پکن": "beijing", "بیجینگ": "beijing",
     "واشنگتن": "washington", "واشینگتن": "washington",
+    # People / CEOs
+    "ایلان": "elon musk", "ماسک": "elon musk", "ایلان‌ماسک": "elon musk",
+    "سم‌آلتمن": "sam altman", "آلتمن": "sam altman", "سم": "sam altman",
+    "جنسن": "jensen huang", "هوانگ": "jensen huang", "جنسن‌هوانگ": "jensen huang",
+    "لینگ‌فنگ": "ling feng", "لینگ": "ling feng", "فنگ": "ling feng",
+    "ساتیا": "satya nadella", "نادلا": "satya nadella",
+    "سوندار": "sundar pichai", "پیچای": "sundar pichai",
+    "دمیس": "demis hassabis", "حسابیس": "demis hassabis",
+    "داریو": "dario amodei", "آمودی": "dario amodei",
+    "لی‌فی‌فی": "li fei-fei", "فی‌فی": "fei-fei li",
+    "اندرو": "andrew ng", "انگ": "andrew ng",
+    "یان": "yann lecun", "لکان": "yann lecun",
+    "رابین": "robin li", "لی‌بین": "robin li",
+    "جک": "jack ma", "جک‌ما": "jack ma",
+    "رن‌ژنگفی": "ren zhengfei", "ژنگفی": "ren zhengfei",
+    # Companies
+    "متا": "meta", "فیسبوک": "facebook meta",
+    "بایدو": "baidu", "تنسنت": "tencent",
+    "شیائومی": "xiaomi",
+    "سامسونگ": "samsung",
+    "اپل": "apple",
+    "آمازون": "amazon", "ای‌دبلیو‌اس": "aws",
+    "تسلا": "tesla",
+    "اینتل": "intel",
+    "ای‌ام‌دی": "amd",
+    "کوالکام": "qualcomm",
+    "میسترال": "mistral",
+    "استیبیلیتی": "stability ai",
+    # Terms
+    "هوش": "ai", "یادگیری": "machine learning",
+    "شبکه‌عصبی": "neural network",
+    "ترنسفورمر": "transformer",
+    "پردازنده": "processor", "گرافیکی": "gpu",
 }
 
 # Persian suffixes stripped when checking stopwords (superlative/plural)
@@ -316,7 +349,15 @@ def _web_search_budgeted(keywords: list[str], limit: int) -> list[dict]:
     """
     if not keywords:
         return []
-    query = " ".join(keywords)
+    # Build two queries: one with all keywords (mixed FA+EN), 
+    # and one with only English aliases for better web results
+    en_keywords = [w for w in keywords if w.isascii()]
+    fa_keywords = [w for w in keywords if not w.isascii()]
+    # Primary query: English keywords first (better for web), then Persian
+    if en_keywords:
+        query = " ".join(en_keywords)
+    else:
+        query = " ".join(keywords)
     started = time.monotonic()
     raw: list[dict] = []
     try:
